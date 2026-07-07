@@ -128,7 +128,21 @@ Voice and speed scripts live in `%USERPROFILE%\.claude\kokoro\`; the toggle, sto
 - British female: `bf_alice`, `bf_emma`, `bf_isabella`, `bf_lily`
 - British male: `bm_daniel`, `bm_fable`, `bm_george`, `bm_lewis`
 
-Short aliases such as `onyx`, `sky`, and `daniel` resolve to full Kokoro IDs. Preview voices with the helper:
+Short aliases such as `onyx`, `sky`, and `daniel` resolve to full Kokoro IDs.
+
+The easiest way to hear samples is to just ask Claude in the chat, for example:
+
+```
+give me a quick voice preview
+```
+```
+play all the voices
+```
+```
+preview the onyx voice
+```
+
+Or run the helper yourself in a terminal (PowerShell):
 
 ```
 py -3 %USERPROFILE%\.claude\kokoro\tts_preview.py "quick preview voices"
