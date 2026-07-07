@@ -6,7 +6,7 @@
 
 # Omnicapable Voice for Claude Code
 
-![License](https://img.shields.io/badge/license-MIT-green) ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-blue) ![Offline](https://img.shields.io/badge/runs-100%25%20offline-brightgreen) ![Free](https://img.shields.io/badge/cost-free-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-green) ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-green) ![Offline](https://img.shields.io/badge/runs-100%25%20offline-green) ![Free](https://img.shields.io/badge/cost-free-green)
 
 [Install](#install) · [How it works](#how-it-works) · [Controls](#controls) · [Troubleshooting](#troubleshooting)
 
@@ -25,11 +25,17 @@ Every time Claude Code finishes a response, it is spoken aloud automatically thr
 This is not a generic text-to-speech add-on. It is built for coding agents:
 
 - **Built into the agent, not bolted on.** It hooks directly into Claude through a Stop hook, so every reply is spoken automatically. No copy-paste, no reading your screen.
+
 - **Tuned for agent output.** It reads the explanation unchanged and skips what doesn't belong in speech, like code blocks, tables, URLs, and emoji. You hear the point, not the syntax.
+
 - **Local, private, and free.** Everything runs offline with the open Kokoro model. No API keys, no accounts, no cloud, no cost.
+
 - **Shared engine across your agents.** Claude Code, Claude Cowork, and Codex install separately but share one local voice engine and controls, so each new one reuses what's already there and behaves the same.
+
 - **Keeps you in the loop.** Hear what your agent is doing and guide it while your eyes are elsewhere. It runs in the background, so it never slows your agent down.
+
 - **Yours to tune.** 27 voices and adjustable speed, with a per-tool voice so parallel agents sound distinct.
+
 - **More accessible.** A comfortable way to work with AI for people with dyslexia, low vision, or screen fatigue.
 
 ---
@@ -46,15 +52,15 @@ This is not a generic text-to-speech add-on. It is built for coding agents:
 
 Setup takes just a few clicks and configures everything for you automatically.
 
-**Let your agent do it.** You already work with a coding agent, so just ask it. Paste this into Claude Code:
+**Let your agent do it.** Just paste this into Claude Code:
 
 ```
 Clone https://github.com/Omnicapable/claude-code-tts and run the installer for my operating system.
 ```
 
-It clones the repo and runs the right installer for you.
+It clones and installs everything for you.
 
-**Prefer to run it yourself?** Download or clone the repo, then:
+**Prefer to do it yourself?** Clone the repo, then:
 
 **Windows:** right-click `Windows/install_claude_tts_Windows_v3.0.ps1` and choose *Run with PowerShell*.
 
@@ -93,6 +99,8 @@ Both Claude setups feed the same local Voice Engine (Kokoro), differing only in 
 | Starts at login | Voice engine starts automatically. | Watcher and auto-restarter both start automatically. |
 | Does Claude do anything | No, fully automatic. | No, fully automatic. |
 
+<br>
+
 Both share the same controls: 27 voices, adjustable speed (default 1.2x), voice previews, and stop speech with Ctrl+Alt+X on Windows or Ctrl+Option+X on macOS.
 
 ---
@@ -107,7 +115,7 @@ Ask Claude directly (*"turn voice off"*, *"speak faster"*, *"switch to voice sky
 | Change speed (0.5 to 2.5) | `set_speed.py --up` / `--down` / `1.5` |
 | Turn on or off | `toggle_tts.ps1` |
 | Stop, status, restart | `stop_tts.ps1` · `status_tts.ps1` · `restart_tts.ps1` |
-| Stop current speech | `Ctrl+Alt+X` |
+| Stop current speech | `Ctrl+Alt+X` (Windows) / `Ctrl+Option+X` (macOS) |
 | Uninstall | `uninstall_tts.ps1` |
 
 Voice and speed scripts live in `%USERPROFILE%\.claude\kokoro\`; the toggle, stop, status, restart, and uninstall scripts live in `%USERPROFILE%\.claude\`.
@@ -124,7 +132,11 @@ Short aliases such as `onyx`, `sky`, and `daniel` resolve to full Kokoro IDs. Pr
 
 ```
 py -3 %USERPROFILE%\.claude\kokoro\tts_preview.py "quick preview voices"
+```
+```
 py -3 %USERPROFILE%\.claude\kokoro\tts_preview.py "preview all voices"
+```
+```
 py -3 %USERPROFILE%\.claude\kokoro\tts_preview.py "preview voice onyx"
 ```
 
@@ -139,7 +151,7 @@ The server cleans the text before synthesising. These are silently skipped or re
 - **Markdown tables** are replaced with "attached table".
 - **URLs** are replaced with "link".
 - **Emoji** are stripped.
-- **Abbreviations** are expanded, for example `e.g.` becomes "for example", `vs.` becomes "versus", and `$50` becomes "50 dollars".
+- **Abbreviations** are expanded - `e.g.` becomes "for example", `vs.` becomes "versus", and `$50` becomes "50 dollars".
 
 </details>
 
@@ -158,6 +170,8 @@ The server cleans the text before synthesising. These are silently skipped or re
 ---
 
 ## Uninstall
+
+One command cleanly removes everything it installed:
 ```
 powershell -File %USERPROFILE%\.claude\uninstall_tts.ps1
 ```
@@ -168,8 +182,10 @@ powershell -File %USERPROFILE%\.claude\uninstall_tts.ps1
 
 Built on the open [Kokoro ONNX](https://github.com/thewh1teagle/kokoro-onnx) text-to-speech model, which runs fully offline on CPU.
 
+Created by [Gordon Berger](https://github.com/GordonBerger), part of [Omnicapable](https://github.com/Omnicapable).
+
 ---
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT License. See [LICENSE](LICENSE) for details.
