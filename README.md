@@ -1,10 +1,10 @@
+<p align="center">
+  <img src="assets/banner.png" alt="Omnicapable Voice for Claude Code, local offline text-to-speech" width="880">
+</p>
+
 <div align="center">
 
-<img src="assets/omnicapable-logo.png" width="84" alt="Omnicapable">
-
 # Omnicapable Voice for Claude Code
-
-*Giving Claude a voice you can hear. Free, private, and fully offline.*
 
 ![License](https://img.shields.io/badge/license-MIT-green) ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-blue) ![Offline](https://img.shields.io/badge/runs-100%25%20offline-brightgreen) ![Free](https://img.shields.io/badge/cost-free-brightgreen)
 
@@ -16,9 +16,7 @@ Every time Claude Code finishes a response, it is spoken aloud automatically thr
 
 > **Part of Omnicapable:** Omnicapable bridges AI activity and human agency, making machine behavior easier to see, hear, follow, and steer. See also: [Claude Cowork](https://github.com/Omnicapable/claude-cowork-tts) · [Codex](https://github.com/Omnicapable/codex-tts).
 >
-> **Not affiliated.** Independent, local, open-source tool, not affiliated with, endorsed by, or an official product of any AI lab or company. Names like "Claude" and "Claude Code" refer to compatibility only.
-
-> Demo coming soon.
+> **Not affiliated.** An independent, open-source Omnicapable project, not affiliated with or endorsed by Anthropic. The Claude and Claude Code names are used only to indicate compatibility.
 
 ---
 
@@ -46,6 +44,8 @@ This is not a generic text-to-speech add-on. It is built for coding agents:
 
 ## Install
 
+Setup takes just a few clicks and configures everything for you automatically.
+
 **Let your agent do it.** You already work with a coding agent, so just ask it. Paste this into Claude Code:
 
 ```
@@ -63,7 +63,7 @@ It clones the repo and runs the right installer for you.
 chmod +x Mac/install_claude_tts_Mac_v3.0.sh && ./Mac/install_claude_tts_Mac_v3.0.sh
 ```
 
-The installer (about 10 minutes, downloads ~336 MB of model files):
+The installer sets up everything for you automatically (one time, downloads ~336 MB of model files):
 1. Installs Python packages (`kokoro-onnx`, `sounddevice`, `numpy`)
 2. Downloads the Kokoro ONNX model and voices
 3. Writes the TTS server and helper scripts to `%USERPROFILE%\.claude\kokoro\`
@@ -77,7 +77,7 @@ After install, every Claude Code response is spoken automatically.
 
 ## How it works
 
-Both Claude setups feed the same, fully local Voice Engine (Kokoro). They differ only in how they capture a finished reply.
+Both Claude setups feed the same local Voice Engine (Kokoro), differing only in how they capture a finished reply.
 
 <p align="center">
   <img src="assets/how-it-works.png" alt="How Omnicapable Voice for Claude works" width="820">
