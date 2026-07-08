@@ -125,10 +125,6 @@ Voice and speed scripts live in `%USERPROFILE%\.claude\kokoro\`; the toggle, sto
 <details>
 <summary><b>All 27 voices and previews</b></summary>
 
-<p align="center">
-  <img src="assets/voices.png" alt="The 27 available voices, by accent and gender" width="820">
-</p>
-
 - American male: `am_onyx` (default), `am_adam`, `am_echo`, `am_eric`, `am_fenrir`, `am_liam`, `am_michael`, `am_santa`
 - American female: `af_alloy`, `af_aoede`, `af_bella`, `af_heart`, `af_jessica`, `af_kore`, `af_nicole`, `af_nova`, `af_river`, `af_sarah`, `af_sky`
 - British female: `bf_alice`, `bf_emma`, `bf_isabella`, `bf_lily`
@@ -161,6 +157,10 @@ py -3 %USERPROFILE%\.claude\kokoro\tts_preview.py "preview voice onyx"
 ```
 
 </details>
+
+<p align="center">
+  <img src="assets/voices.png" alt="The 27 available voices, by accent and gender" width="820">
+</p>
 
 <details>
 <summary><b>What gets spoken (text cleaning rules)</b></summary>
