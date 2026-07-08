@@ -122,6 +122,10 @@ Ask Claude directly (*"turn voice off"*, *"speak faster"*, *"switch to voice sky
 
 Voice and speed scripts live in `%USERPROFILE%\.claude\kokoro\`; the toggle, stop, status, restart, and uninstall scripts live in `%USERPROFILE%\.claude\`.
 
+<p align="center">
+  <img src="assets/voices.png" alt="The 27 available voices, by accent and gender" width="820">
+</p>
+
 <details>
 <summary><b>All 27 voices and previews</b></summary>
 
@@ -157,10 +161,6 @@ py -3 %USERPROFILE%\.claude\kokoro\tts_preview.py "preview voice onyx"
 ```
 
 </details>
-
-<p align="center">
-  <img src="assets/voices.png" alt="The 27 available voices, by accent and gender" width="820">
-</p>
 
 <details>
 <summary><b>What gets spoken (text cleaning rules)</b></summary>
