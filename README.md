@@ -1,6 +1,6 @@
 <p align="center">
   <img src="assets/banner.png" alt="Omnicapable Voice for Claude Code, local offline text-to-speech" width="880"><br>
-  <img src="assets/waveform.gif" alt="Voice waveform" width="600">
+  <img src="assets/waveform.gif" alt="Voice waveform" width="480">
 </p>
 
 <div align="center">
