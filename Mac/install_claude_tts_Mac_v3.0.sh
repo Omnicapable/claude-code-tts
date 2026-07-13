@@ -41,7 +41,7 @@ echo "      Found: $($PYTHON --version) at $PYTHON"
 
 # --- 2. Install Python packages ----------------------------------------------
 echo "[2/9] Installing Python packages..."
-$PYTHON -m pip install kokoro-onnx sounddevice numpy pynput --quiet
+$PYTHON -m pip install kokoro-onnx sounddevice numpy --quiet
 echo "      Done."
 
 # --- 3. Create folders -------------------------------------------------------
@@ -1062,18 +1062,20 @@ PLISTEOF
 
 launchctl bootstrap "gui/$(id -u)" "$PLIST_PATH" 2>/dev/null || true
 
-# --- Ctrl+Option+X global stop hotkey (pynput; needs Accessibility permission) ---
+# --- Ctrl+Option+X global stop hotkey (Carbon RegisterEventHotKey; NO permission prompt) ---
 HOTKEY_PLIST_LABEL="com.user.kokoro-tts-hotkey"
 HOTKEY_PLIST_PATH="$HOME/Library/LaunchAgents/$HOTKEY_PLIST_LABEL.plist"
 cat > "$KOKORO_DIR/tts_hotkey.py" << 'PYEOF'
 # -*- coding: utf-8 -*-
 """
 Safe global TTS hotkey daemon (macOS).
-Registers Ctrl+Option+X via pynput and sends Kokoro's shared __STOP__ command to
-127.0.0.1:59001. Requires Accessibility permission for the launching process
-(System Settings > Privacy & Security > Accessibility). Without it the hotkey
-silently does nothing — a macOS security requirement, not a bug.
+Registers Ctrl+Option+X via Carbon's RegisterEventHotKey and sends Kokoro's
+shared __STOP__ command to 127.0.0.1:59001. RegisterEventHotKey is NOT gated by
+Accessibility or Input Monitoring, so NO permission prompt is ever shown —
+unlike a pynput / CGEventTap approach.
 """
+import ctypes
+import ctypes.util
 import os
 import socket
 import time
@@ -1081,6 +1083,14 @@ import time
 HOST = "127.0.0.1"
 PORT = 59001
 LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs", "tts_hotkey.log")
+
+# Carbon modifier masks (these are NOT CGEventFlags values):
+CONTROL_KEY = 0x1000
+OPTION_KEY  = 0x0800
+KEY_X       = 0x07                 # kVK_ANSI_X
+EVENT_CLASS_KEYBOARD = 0x6B657962  # 'keyb'
+EVENT_HOTKEY_PRESSED = 5           # kEventHotKeyPressed
+kProcessTransformToUIElementApplication = 4
 
 
 def log(message):
@@ -1102,15 +1112,66 @@ def send_stop():
         log(f"Ctrl+Option+X failed to send __STOP__: {exc}")
 
 
+class EventTypeSpec(ctypes.Structure):
+    _fields_ = [("eventClass", ctypes.c_uint32), ("eventKind", ctypes.c_uint32)]
+
+
+class EventHotKeyID(ctypes.Structure):
+    _fields_ = [("signature", ctypes.c_uint32), ("id", ctypes.c_uint32)]
+
+
+class ProcessSerialNumber(ctypes.Structure):
+    _fields_ = [("highLongOfPSN", ctypes.c_uint32), ("lowLongOfPSN", ctypes.c_uint32)]
+
+
+carbon = ctypes.CDLL(ctypes.util.find_library("Carbon"))
+
+carbon.GetApplicationEventTarget.restype = ctypes.c_void_p
+carbon.GetApplicationEventTarget.argtypes = []
+carbon.InstallEventHandler.restype = ctypes.c_int32
+carbon.InstallEventHandler.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_ulong,
+                                       ctypes.POINTER(EventTypeSpec), ctypes.c_void_p, ctypes.c_void_p]
+carbon.RegisterEventHotKey.restype = ctypes.c_int32
+carbon.RegisterEventHotKey.argtypes = [ctypes.c_uint32, ctypes.c_uint32, EventHotKeyID,
+                                       ctypes.c_void_p, ctypes.c_uint32, ctypes.POINTER(ctypes.c_void_p)]
+carbon.RunApplicationEventLoop.restype = None
+carbon.RunApplicationEventLoop.argtypes = []
+
+# OSStatus handler(EventHandlerCallRef, EventRef, void *userData)
+HANDLER = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p)
+
+
+def _on_hotkey(_call_ref, _event, _user_data):
+    send_stop()
+    return 0
+
+
+# Keep a reference so the trampoline isn't garbage-collected.
+_handler_ref = HANDLER(_on_hotkey)
+
+
 def main():
+    # Detach from the Dock but stay able to receive events.
     try:
-        from pynput import keyboard
-    except Exception as exc:
-        log(f"pynput unavailable, hotkey disabled: {exc}")
+        psn = ProcessSerialNumber(0, 2)  # {0, kCurrentProcess}
+        carbon.TransformProcessType(ctypes.byref(psn),
+                                    kProcessTransformToUIElementApplication)
+    except Exception:
+        pass
+
+    target = carbon.GetApplicationEventTarget()
+    spec = EventTypeSpec(EVENT_CLASS_KEYBOARD, EVENT_HOTKEY_PRESSED)
+    carbon.InstallEventHandler(target, _handler_ref, 1, ctypes.byref(spec), None, None)
+
+    hotkey_ref = ctypes.c_void_p()
+    status = carbon.RegisterEventHotKey(KEY_X, CONTROL_KEY | OPTION_KEY,
+                                        EventHotKeyID(0x54545353, 1), target, 0,
+                                        ctypes.byref(hotkey_ref))
+    if status != 0:
+        log(f"RegisterEventHotKey FAILED (status {status}); Ctrl+Option+X may be taken.")
         return
-    log("Hotkey daemon starting (Ctrl+Option+X). Needs Accessibility permission.")
-    with keyboard.GlobalHotKeys({"<ctrl>+<alt>+x": send_stop}) as h:
-        h.join()
+    log("Registered Ctrl+Option+X (Carbon, no permission needed).")
+    carbon.RunApplicationEventLoop()
 
 
 if __name__ == "__main__":
@@ -1141,9 +1202,7 @@ cat > "$HOTKEY_PLIST_PATH" << PLISTEOF
 PLISTEOF
 launchctl bootout "gui/$(id -u)/$HOTKEY_PLIST_LABEL" 2>/dev/null || true
 launchctl bootstrap "gui/$(id -u)" "$HOTKEY_PLIST_PATH" 2>/dev/null || true
-echo "      Ctrl+Option+X stop hotkey installed (pynput)."
-echo "      IMPORTANT: macOS needs Accessibility permission for the hotkey to work:"
-echo "        System Settings > Privacy & Security > Accessibility  (add & enable: $PYTHON)"
+echo "      Ctrl+Option+X stop hotkey installed (no permission prompt needed)."
 
 echo "      Waiting for server to load model (~10 seconds)..."
 sleep 10
@@ -1153,180 +1212,6 @@ if python3 -c "import socket; s=socket.socket(); s.settimeout(2); s.connect(('12
 else
     echo -e "      ${YELLOW}WARNING: Server did not respond. Try running: bash ~/.claude/restart_tts.sh${NC}"
 fi
-
-# --- 9. Set up Ctrl+Option+X stop shortcut via Automator --------------------
-echo "[9/9] Setting up Ctrl+Option+X stop shortcut..."
-
-SERVICES_DIR="$HOME/Library/Services"
-WORKFLOW_DIR="$SERVICES_DIR/Stop TTS.workflow/Contents"
-mkdir -p "$WORKFLOW_DIR"
-
-# Write the Automator workflow document.wflow
-cat > "$WORKFLOW_DIR/document.wflow" << 'WFEOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>AMApplicationBuild</key>
-    <string>523</string>
-    <key>AMApplicationVersion</key>
-    <string>2.10</string>
-    <key>AMDocumentVersion</key>
-    <string>2</string>
-    <key>actions</key>
-    <array>
-        <dict>
-            <key>action</key>
-            <dict>
-                <key>AMAccepts</key>
-                <dict>
-                    <key>Container</key>
-                    <string>List</string>
-                    <key>Optional</key>
-                    <true/>
-                    <key>Types</key>
-                    <array><string>com.apple.cocoa.string</string></array>
-                </dict>
-                <key>AMActionVersion</key>
-                <string>2.0.3</string>
-                <key>AMApplication</key>
-                <array><string>Automator</string></array>
-                <key>AMParameterProperties</key>
-                <dict>
-                    <key>COMMAND_STRING</key>
-                    <dict/>
-                    <key>CheckedForUserDefaultShell</key>
-                    <dict/>
-                    <key>inputMethod</key>
-                    <dict/>
-                    <key>shell</key>
-                    <dict/>
-                    <key>source</key>
-                    <dict/>
-                </dict>
-                <key>AMProvides</key>
-                <dict>
-                    <key>Container</key>
-                    <string>List</string>
-                    <key>Types</key>
-                    <array><string>com.apple.cocoa.string</string></array>
-                </dict>
-                <key>ActionBundlePath</key>
-                <string>/System/Library/Automator/Run Shell Script.action</string>
-                <key>ActionName</key>
-                <string>Run Shell Script</string>
-                <key>ActionParameters</key>
-                <dict>
-                    <key>COMMAND_STRING</key>
-                    <string>bash ~/.claude/stop_tts.sh</string>
-                    <key>CheckedForUserDefaultShell</key>
-                    <true/>
-                    <key>inputMethod</key>
-                    <integer>0</integer>
-                    <key>shell</key>
-                    <string>/bin/bash</string>
-                    <key>source</key>
-                    <string></string>
-                </dict>
-                <key>BundleIdentifier</key>
-                <string>com.apple.RunShellScript</string>
-                <key>CFBundleVersion</key>
-                <string>2.0.3</string>
-                <key>CanShowSelectedItemsWhenRun</key>
-                <false/>
-                <key>CanShowWhenRun</key>
-                <true/>
-                <key>Category</key>
-                <array><string>AMCategoryUtilities</string></array>
-                <key>Class Name</key>
-                <string>RunShellScriptAction</string>
-                <key>InputUUID</key>
-                <string>B9D1A2C3-4E5F-6789-ABCD-EF0123456789</string>
-                <key>Keywords</key>
-                <array><string>Shell</string><string>Script</string><string>Command</string></array>
-                <key>OutputUUID</key>
-                <string>A1B2C3D4-E5F6-7890-ABCD-EF1234567890</string>
-                <key>UUID</key>
-                <string>C3D4E5F6-7890-ABCD-EF12-34567890ABCD</string>
-                <key>UnlocalizedApplications</key>
-                <array><string>Automator</string></array>
-                <key>arguments</key>
-                <dict>
-                    <key>0</key>
-                    <dict>
-                        <key>default value</key>
-                        <integer>0</integer>
-                        <key>name</key>
-                        <string>inputMethod</string>
-                        <key>required</key>
-                        <string>0</string>
-                        <key>type</key>
-                        <string>0</string>
-                        <key>uuid</key>
-                        <string>0</string>
-                    </dict>
-                </dict>
-                <key>isViewVisible</key>
-                <true/>
-                <key>location</key>
-                <string>309.500000:253.000000</string>
-                <key>nibPath</key>
-                <string>/System/Library/Automator/Run Shell Script.action/Contents/Resources/English.lproj/main.nib</string>
-            </dict>
-            <key>isViewVisible</key>
-            <true/>
-        </dict>
-    </array>
-    <key>connectors</key>
-    <dict/>
-    <key>workflowMetaData</key>
-    <dict>
-        <key>workflowTypeIdentifier</key>
-        <string>com.apple.Automator.servicesMenu</string>
-    </dict>
-</dict>
-</plist>
-WFEOF
-
-# Write Info.plist
-cat > "$WORKFLOW_DIR/Info.plist" << 'INFEOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>NSServices</key>
-    <array>
-        <dict>
-            <key>NSMenuItem</key>
-            <dict>
-                <key>default</key>
-                <string>Stop TTS</string>
-            </dict>
-            <key>NSMessage</key>
-            <string>runWorkflowAsService</string>
-            <key>NSRequiredContext</key>
-            <dict/>
-            <key>NSSendTypes</key>
-            <array/>
-        </dict>
-    </array>
-</dict>
-</plist>
-INFEOF
-
-# Register the service
-/System/Library/CoreServices/pbs -update 2>/dev/null || true
-
-# Assign Ctrl+Option+X keyboard shortcut via defaults
-defaults write pbs NSServicesStatus -dict-add '"(null) - Stop TTS - runWorkflowAsService"' '{
-    "key_equivalent" = "^~x";
-    "enabled_context_menu" = 1;
-    "enabled_services_menu" = 1;
-    "presentation_modes" = { "ContextMenu" = 1; "ServicesMenu" = 1; };
-}' 2>/dev/null || true
-
-echo "      Done. Press Ctrl+Option+X to stop speech mid-reply."
-echo "      (You may see a one-time permissions prompt the first time you use it.)"
 
 echo ""
 echo "============================================"
