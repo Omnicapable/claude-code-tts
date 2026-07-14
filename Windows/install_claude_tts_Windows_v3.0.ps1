@@ -500,8 +500,9 @@ def get_current_voice():
 def preview_voice(category, name, delay=5):
     label = f"{category} -- {name.split('_',1)[1]}"
     print(f"  {label}")
-    send(f"__VOICE:{name}__"); time.sleep(0.2)
-    send(f"{label}. {SAMPLE}"); time.sleep(delay)
+    # Atomic per-request voice (VOICE=name|text) avoids the shared-global race
+    # where threaded synthesis could speak a sample in the next voice.
+    send(f"VOICE={name}|{label}. {SAMPLE}"); time.sleep(delay)
 
 def main():
     args = sys.argv[1:]
@@ -702,9 +703,11 @@ def stop_speech():
 def preview_voice(category, name, delay=5.0):
     label = f"{category} - {name.split('_', 1)[1]}"
     print(f"  {label}", flush=True)
-    set_voice(name)
-    time.sleep(0.2)
-    send(f"{label}. {SAMPLE}")
+    # Carry the voice in the request itself (VOICE=name|text) so each sample is
+    # synthesised with its own voice atomically. Setting a shared global and then
+    # sending the text separately races: threaded synthesis could read a voice the
+    # next sample already overwrote, so a sample plays in the wrong voice.
+    send(f"VOICE={name}|{label}. {SAMPLE}")
     time.sleep(delay)
 
 
