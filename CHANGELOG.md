@@ -12,6 +12,8 @@ Lightweight public summary. Full detail lives in `TTS_Changelog_Claude_Code.docx
 - **Audio follows your output device.** The server refreshes the audio device before each utterance, so switching output (e.g. connecting AirPods or headphones) is picked up without restarting the server.
 - **Clearer install docs.** The README manual-install steps now include the full `git clone` + `cd` sequence (with a ZIP fallback), and the Controls list documents stop, replay, speed, voice change, and voice previews.
 - **Mac installer BOM removed.** The macOS installer no longer begins with a UTF-8 byte-order mark, which had broken `./install_claude_tts_Mac_v3.0.sh` (the BOM hid the `#!/bin/bash` shebang). It now runs directly as documented.
+- **Fixed duplicate servers / looping speech on Mac (reported from a Mac session).** The Stop-hook liveness check gave the server only 2s and treated any error — including a timeout while the server was busy synthesising — as "server dead," so it spawned another `tts_server.py` and re-spoke the text (multiple servers, repeated audio). It now retries with a longer timeout, starts a server only if none is running (`pgrep` guard), and re-sends to the server instead of speaking through a second path.
+- **Audio-device follow made non-fragile.** The output-device refresh no longer tears down and re-initialises PortAudio before every utterance (which caused macOS `PaMacCore -50` errors); it only re-scans after an idle gap, so it still follows AirPods/headphone switches without thrashing the audio backend mid-burst.
 
 ---
 
