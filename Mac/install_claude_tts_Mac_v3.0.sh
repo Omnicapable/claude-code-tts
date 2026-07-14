@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 # =============================================================================
 # install_claude_tts_Mac_v3.0.sh  v3.0
 # One-shot installer for Claude Code local TTS using Kokoro ONNX — macOS

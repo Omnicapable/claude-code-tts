@@ -11,6 +11,7 @@ Lightweight public summary. Full detail lives in `TTS_Changelog_Claude_Code.docx
 - **Replay the last answer.** New global hotkey — Ctrl+Alt+R (Windows) / Ctrl+Option+R (macOS) — re-speaks the last reply. The server stores the last text and handles a new `__REPLAY__` command.
 - **Audio follows your output device.** The server refreshes the audio device before each utterance, so switching output (e.g. connecting AirPods or headphones) is picked up without restarting the server.
 - **Clearer install docs.** The README manual-install steps now include the full `git clone` + `cd` sequence (with a ZIP fallback), and the Controls list documents stop, replay, speed, voice change, and voice previews.
+- **Mac installer BOM removed.** The macOS installer no longer begins with a UTF-8 byte-order mark, which had broken `./install_claude_tts_Mac_v3.0.sh` (the BOM hid the `#!/bin/bash` shebang). It now runs directly as documented.
 
 ---
 
