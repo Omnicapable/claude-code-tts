@@ -4,7 +4,7 @@ Lightweight public summary. Full detail lives in `TTS_Changelog_Claude_Code.docx
 
 ---
 
-## Session 16 — July 14, 2026
+## v3.6
 
 - **Mac stop hotkey needs no permission now.** The macOS stop hotkey (Ctrl+Option+X) was rewritten from `pynput` to Carbon `RegisterEventHotKey`, which is not gated by Accessibility / Input Monitoring, so there is no first-use permission prompt. The leftover Automator "Stop TTS" service was removed and `pynput` dropped from the Mac dependencies.
 - **Fixed the Mac hotkey failing to start.** On macOS 11+, `ctypes.util.find_library("Carbon")` returns `None` (system frameworks live in the dyld shared cache), so the daemon crashed before registering. It now loads Carbon by absolute path and logs any startup error to `~/.claude/tts_hotkey.log`.
@@ -16,10 +16,11 @@ Lightweight public summary. Full detail lives in `TTS_Changelog_Claude_Code.docx
 - **Audio-device follow made non-fragile.** The output-device refresh no longer tears down and re-initialises PortAudio before every utterance (which caused macOS `PaMacCore -50` errors); it only re-scans after an idle gap, so it still follows AirPods/headphone switches without thrashing the audio backend mid-burst.
 - **Voice preview: fixed samples playing in the wrong voice.** The preview announced each voice by mutating a shared global (`__VOICE:name__`) and sent the sample as a separate message — but synthesis runs on a background thread, so a fast preview could synthesise a sample *after* the next voice-switch had overwritten the global, playing it in the wrong voice (mismatched label/gender). Each sample now carries its own voice atomically via the per-request `VOICE=name|text` prefix, correct regardless of timing.
 - **Install no longer blocked by Homebrew Python (PEP 668).** On macOS with Homebrew's Python, a global `pip install` is refused (externally-managed environment), which aborted setup at the package step. The installer now retries with `--break-system-packages` when it hits this, so it completes.
+- **Dollar amounts now read correctly.** The `$` text cleaner only converted a single digit, so `$50` was spoken as "5 dollars zero" and `$3.50` as "3 dollars point five zero". It now parses the whole amount: `$50` → "50 dollars", `$3.50` → "3 dollars and 50 cents", `$1,234.56` → "1234 dollars and 56 cents". Plain decimals (e.g. `3.14`) and percentages were already correct and are unaffected.
 
 ---
 
-## Session 15 — June 30, 2026
+## v3.5
 
 - **Friendly voice preview helper.** Installers now write bundled `tts_preview.py` beside the Kokoro server. Claude Code instructions route explicit requests such as `quick preview voices`, `preview all voices`, and `preview voice onyx` through the helper. It supports short voice aliases, strict command matching, and `--dry-run` tests; ordinary explanatory text does not trigger previews.
 - **Ctrl+Alt+X stop hotkey now installed (was advertised but disabled).** The Windows installer
@@ -31,7 +32,7 @@ Lightweight public summary. Full detail lives in `TTS_Changelog_Claude_Code.docx
 
 ---
 
-## Session 14 — June 29, 2026
+## v3.4
 
 - **Replay-bug audit (no code change).** A field-name bug was found and fixed in the Claude Cowork
   TTS watcher (its 3-minute age filter read a non-existent `ts` field instead of the ISO-8601
@@ -47,25 +48,25 @@ Lightweight public summary. Full detail lives in `TTS_Changelog_Claude_Code.docx
 
 ---
 
-## Session 13 — June 29, 2026
+## v3.3
 
 - **Robust Python launcher (Windows)** — the installer now launches Python through the Windows `py -3` launcher instead of bare `python` for the package install, the Kokoro server start, the auto-start VBS, and the generated helper-command docs. `py -3` is PATH-order independent and version-aware, so on machines with more than one Python install the server always starts under Python 3.x. Process detection (`Get-Process python`) is unchanged. **Mac is unaffected** — its installer already resolves `python3` once and reuses it.
 
 ---
 
-## Session 12 — June 2026
+## v3.2
 
 - **Default speed 1.1 → 1.2** — all installers now ship with `SPEED = 1.2`; existing installs unaffected (change live with `set_speed.py`)
 
 ---
 
-## Session 11 — June 2026
+## v3.1
 
 - **`tts_hook.ps1` connect timeout (Windows)** — replaced blocking `TcpClient.Connect()` with `BeginConnect` + 2-second `AsyncWaitHandle.WaitOne` timeout. If Kokoro enters a zombie state (port open but unresponsive), the old call could freeze Claude Code for up to 120 seconds; the fix bounds the worst case to 2 seconds. Mac hook unaffected — already uses `s.settimeout(2)`.
 
 ---
 
-## Session 1–10 — April 2026 (v3.0)
+## v3.0
 
 - **Double-speaking fix** — Claude no longer writes regular responses to `tts_queue.txt`; queue is now reserved for special commands only (`__PREVIEW_*`)
 - **CLAUDE.md simplified** — cut from 43 to 20 lines; removed duplicate voice list, consolidated controls into a single block; added "never change voice" rule
@@ -73,7 +74,7 @@ Lightweight public summary. Full detail lives in `TTS_Changelog_Claude_Code.docx
 
 ---
 
-## v2.0 — April 2026
+## v2.0
 
 - **Pipelined synthesis** — sentence-by-sentence: first word heard within ~0.5 s of reply finishing
 - **`sounddevice` replaces PowerShell audio** — plays from memory in Python; no subprocess, no disk I/O, ~300 ms overhead eliminated per sentence
@@ -90,7 +91,7 @@ Lightweight public summary. Full detail lives in `TTS_Changelog_Claude_Code.docx
 
 ---
 
-## v1.0 — April 2026
+## v1.0
 
 - **Kokoro ONNX** installed locally — fully offline, no API keys
 - **Persistent TCP server** (`tts_server.py`) on port 59001 — loads model once, listens continuously
