@@ -4,6 +4,107 @@ Lightweight public summary. Full detail lives in `TTS_Changelog_Claude_Code.docx
 
 ---
 
+## Shared server v2.5
+
+**Improved speech**
+
+- **Speed survives a restart too.** The chosen speed is saved to `speed.txt` beside the
+  server (mirroring voice memory in `voice.txt`) and reloaded on start, so it no longer
+  resets to the default after a reboot.
+- **Abbreviations are finally spoken.** `e.g.`, `i.e.`, `vs.`, `etc.`, `approx.` were never
+  expanded — their patterns ended in a word boundary that cannot match before a space, so the
+  rules existed but never fired. They now read "for example", "that is", "versus",
+  "etcetera", "approximately".
+- **Money reads naturally in more shapes.** `$3.5` reads "3 dollars and 50 cents" (the
+  ".5" used to be left dangling after "3 dollars"), `$0.99` reads "99 cents", `$1.5 million`
+  and `$1.5M` read "1 point 5 million dollars" (scale words thousand/million/billion/trillion
+  plus attached suffixes k/M/B), and odd precision like `$12.345` falls back to
+  "12 point 345 dollars". `$3.50` and `$1,234.56` read exactly as before.
+- **More emoji and symbols stripped.** The star/symbol and arrow blocks (U+2B00-2BFF,
+  U+2190-21FF — e.g. star and left-right-arrow glyphs) no longer reach the voice.
+
+**Cleanup**
+
+- **Dead fallback removed.** The Claude Code and Cowork installers wrote `tts_speak.py` and
+  set an unused `$ttsScript`/`TTS_SCRIPT` variable pointing at it; nothing ever invoked
+  either. Both are gone. The persistent server remains the only audio path, unchanged.
+  Existing installs keep an inert `tts_speak.py` on disk; it is harmless.
+
+All six embedded servers and the three `src/` copies remain byte-identical (v2.5).
+
+---
+
+## Shared server v2.4
+
+**Fixed**
+
+- **Mid-reply silence.** Long sentences became single oversized chunks (200+ chars); when
+  one followed a short chunk, playback caught up with synthesis and speech stalled for a
+  couple of seconds. Sentences now split at clause breaks (commas, semicolons) into chunks
+  of at most ~120 characters, and fragments under ~40 merge with a neighbour. Synthesis on
+  CPU runs about 4x realtime, so with uniform chunks the synthesizer always finishes the
+  next chunk before the current one ends. Measured on a real reply: zero gaps.
+- **Speech starts sooner.** A short opening sentence is no longer glued onto a following
+  long one, so the first chunk stays small. Measured time-to-first-audio on a typical
+  reply: 1.5s, down from 3.6s.
+
+Chunking only: the control protocol, stop/replay hotkeys, queue, and audio path are
+untouched. All six embedded servers and the three `src/` copies remain byte-identical
+(v2.4).
+
+---
+
+## Shared server v2.3
+
+**New**
+
+- **Your voice now survives a restart.** The chosen voice is saved to `voice.txt` next to the
+  server and reloaded on start, so it no longer resets to the default after a reboot or a
+  server restart.
+- **Version numbers and bare domains are read properly.** `3.11` is spoken "3 point 11",
+  `2.3.1` as "2 point 3 point 1", and `claude.ai` as "claude dot ai" (known TLDs only).
+  Money is unaffected — `$3.50` still reads "3 dollars and 50 cents". The pronunciation rule
+  is deliberately ordered **after** the money rule: a ` point ` substitution applied first
+  eats the decimal and produces "3 dollars point 50". That ordering is load-bearing and is
+  pinned by a comment in `clean_text()`; do not move it above the money rule.
+
+**Fixed / consolidated**
+
+- **All installers now ship one identical Kokoro server.** Every installer writes the *same*
+  file (`~/.claude/kokoro/tts_server.py`, port 59001), but the six embedded copies had drifted
+  (six copies ranging from 170 to 192 lines), so **install order silently decided which server
+  you ended up with** — installing a second product could silently replace a newer server with
+  an older, smaller one (the Codex Mac copy, for example, lacked emoji stripping). All six are now
+  byte-identical to a single canonical **v2.3**, so any install order gives the same result.
+- **Version header corrected.** The embedded servers advertised `v2.0` / `v2.1` in their
+  docstring while actually shipping replay, output-device follow and the money/decimal fixes.
+  The header now matches the code and is stamped v2.3.
+- **`src/` resynced (was stale).** The published `src/tts_server.py`, `src/tts_hotkey.py` and
+  `src/tts_hotkey_mac.py` still held older code: no `__REPLAY__`, a stop-only `Ctrl+Alt+X`
+  hotkey daemon, and the previous `pynput` Mac hotkey. The installers shipped the replay
+  hotkey while the published source folder did not contain it. `src/` now matches byte-for-byte
+  what the installers write.
+- **Claude Code Mac reached parity.** Its embedded server was missing voice memory (so the
+  chosen voice was lost on restart) and the version/domain pronunciation block. Both added.
+- **Cowork gained emoji stripping.** Its server lacked the emoji strip the other products had,
+  so emoji could be read aloud. Added to the Windows and Mac servers.
+- **Note — `tts_speak.py` is vestigial.** The installers still write it and still set
+  `$ttsScript` / `TTS_SCRIPT` to it, but nothing invokes it: the variable is assigned once and
+  never used. The "exactly one audio path" guarantee holds. The dead file and variable are
+  safe to remove in a later pass.
+
+**Known issue (not fixed here)**
+
+- **Occasional silence mid-reply.** Synthesis and playback already overlap (a producer thread
+  synthesizes ahead of the playback loop), so this is *not* a serialization problem. Two real
+  causes remain: playback calls `sd.play()`/`sd.wait()` per chunk, which opens and closes an
+  output stream for every chunk; and there is no buffer-ahead, so playback starts the instant
+  chunk 1 is ready and any slower chunk becomes an audible gap. The synthesis queue is also
+  unbounded. Being addressed separately — it touches stop-hotkey semantics and interacts with
+  `_refresh_audio_device()`, so it is deliberately not bundled with this release.
+
+---
+
 ## v3.6
 
 - **Mac stop hotkey needs no permission now.** The macOS stop hotkey (Ctrl+Option+X) was rewritten from `pynput` to Carbon `RegisterEventHotKey`, which is not gated by Accessibility / Input Monitoring, so there is no first-use permission prompt. The leftover Automator "Stop TTS" service was removed and `pynput` dropped from the Mac dependencies.
