@@ -79,7 +79,7 @@ chmod +x Mac/install_claude_tts_Mac_v3.0.sh && ./Mac/install_claude_tts_Mac_v3.0
 **Windows:** in the `Windows` folder, right-click `install_claude_tts_Windows_v3.0.ps1` and choose *Run with PowerShell*.
 
 The installer sets up everything for you automatically (one time, downloads ~336 MB of model files):
-1. Installs Python packages (`kokoro-onnx`, `sounddevice`, `numpy`)
+1. Installs the required Python packages
 2. Downloads the Kokoro ONNX model and voices
 3. Writes the TTS server and helper scripts to `%USERPROFILE%\.claude\kokoro\`
 4. Adds a Stop hook to Claude Code's `settings.json`
